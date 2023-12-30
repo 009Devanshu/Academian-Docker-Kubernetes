@@ -1,0 +1,71 @@
+---------------------------------------------------------------
+Sharing Images (Pull/Push) concepts
+------------------- --------------------------------------------
+
+We can share Dockerfile along with code or Image. 
+
+---------------------------------------
+Pushing Images to Dockerhub
+---------------------------------------
+
+We can share images via Docker Hub or Private Registry
+
+Pushing Image to Dockerhub 
+Create account on hub.docker.com
+I loggen in using devanshu.official09@gmail.com 
+I used username--> devanshu98
+I used password--> deepthemazic12
+devanshu98 will be your name space 
+Now, create a new repository. Let's say 'node-hello-world'
+
+To push new tag to this repository---> 
+docker push devanshu98/node-hello-world:tagname		(If we run this command directly in our local environment, It will give error, our local environment should know about this 
+							repository first)
+							Error: The push refers to repository [docker.io/devanshu98/node-hello-world] An image does not exist locally with the tag:
+							devanshu98/node-hello-world
+
+We will have to our image the name devanshu98/node-hello-world
+
+There are two ways, either we can create another image or we can rename the image. 
+	Creating the image	
+		docker build -t devanshu98/node-hello-world .
+	Renaming the image
+		docker tag old_name new_name
+		docker tag node-app:latest devanshu98/node-hello-world		(However, old image will also be existed)(This new image will be clone of old_image with same id)
+			You can also give tag--> docker tag node-app:latest devanshu98/node-hello-world:latest		(But, I did not give tagname to our new image)
+
+Now, push the image
+	docker push devanshu98/node-hello-world		(But, access denied hahaha!!!)
+So, provide login from our local environment
+	docker login				(And provide username and password)
+			
+			
+Note: If you want to logout
+	docker logout
+
+
+
+------------------------------------------------------------
+Pulling and Using Shared Images
+------------------------------------------------------------
+
+
+Pulling docker image from docker hub. No need to login(Since it is public)	
+docker pull image_name
+	docker pull devanshu98/node-hello-world:latest
+	
+Important Notes:
+'docker pull...' will always fetch the latest image from your container registry.
+If you run 'docker run...', first, it will look for the image in your local machine. If it is not there, i will pull the latest image from the docker registry.
+	If you already have the image locally, then if you run the container again, it will not check the image on your system, a latest one or not. So, that's why you will need to 
+	run 'docker pull..' in order to make sure that you have latest image.
+
+
+
+
+
+
+
+
+
+

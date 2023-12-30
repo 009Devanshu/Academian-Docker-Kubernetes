@@ -1,0 +1,169 @@
+To build the docker images 
+	docker build .
+To know all the running containers 	
+	docker ps 
+To stop the container 
+	docker stop container-name/container-id
+	
+	
+------------------------------------------------
+docker run node		(nodejs will provide interactive node within containder)
+
+
+docker ps -a		(You will see container was exited and you are not in interactive mode)
+
+
+To remain in interactive mode--->
+
+docker run -it node	(Now, you are in nodejs interactive mode)
+
+
+--------------------------------------------------------------------
+
+We could build image up on the node image and execute our own image which is built on official docker hub image. 
+
+
+FROM node 
+
+WORKDIR /app
+
+COPY package.json /app
+
+RUN npm install 
+
+COPY . /app 
+
+EXPOSE 80
+
+CMD ["node","server.js"]
+
+
+docker build . 
+docker run 3000:80 image-id
+
+--------------------------------------------------------------------------------------------------
+
+
+Other Fucking commands--->
+docker --help
+docker ps -a	(It will list all the containers irrespective of their status)
+docker ps --help	(It will show all the available options regarding docker ps)
+docker run -p port:port image_name       (always create a new container, instead of creating a new container we can restart a stopped container.)	(container is running in the foreground)
+	Attached meode --> Means we are listening to the output. 
+docker start container_name/container_id	(One more benefit with this command that It will not block the terminal) 
+	But the problem with this is that we will not be able to interact with this container or see logs. However the container is running in the background.
+	Detached Mode--> We are not listening to the output.
+	
+	
+docker start -a container_name/container_id		(It will start container in detached mode)
+	
+docker run -p port:port -d image_name/image_id		(It will run container in detached mode)
+
+We can reattach to the background running container
+docker attach container_name
+
+logs command --> We can log the running containers
+	docker logs container_name
+We can follow the logs of running container 
+	docker logs -f container_name
+
+
+
+----------------------------------------------------------------------------------------------------------------------
+Entering Interactive Mode
+----------------------------------------------------------------------------------------------------------------------
+
+docker run -it image_name 		(Obviously we are running container of non-web service)
+
+To restart in interactive mode--	(This image is not of web-service)
+docker start -a -i container_name
+
+
+
+---------------------------------------------------------------------------
+Deleting Images and Containers
+---------------------------------------------------------------------------
+
+For Containers
+-----------------
+First of all stop the running container
+
+docker rm container1 container2 ...
+
+docker container prune	(It will delete all the stopped containers in one go)
+
+
+
+For Images
+----------------
+docker rmi image_id1 image_id2 		(But first of all we will have to remove container that is using the image that you want to delete. It does not matter whether container is stopped or running)
+
+docker image prune
+
+
+
+-----------------------------------------------------------------------------------------
+Removing Stopped Containers Automatically
+-----------------------------------------------------------------------------------------
+
+CHECKE docker run --help 
+
+docker run -p port:port -d --rm Image_id		(--rm will remove the container when it is exited)
+
+
+
+-----------------------------------------
+Inspecting Image--
+-------------------------------------------
+docker image inspect image_id
+
+
+
+
+-----------------------------------------
+Copying Files Into and From Container
+-------------------------------------------
+
+
+Copying files into running container
+
+docker cp dummy/. container_name:/test			(dummy is the folder in our folder and which contains various files)
+							(/test will be folder in the container, it is not existed in container it will be created)
+							dot (.) denotes all types of files inside dummy folder.
+							
+
+To copy files into our folder from the container
+docker cp container_name:/test dummy
+
+
+
+-----------------------------------------
+Naming and Taging Containers and Images
+-------------------------------------------
+Naming Containers
+docker run --help
+docker run -p port:port -d --rm --name <custom_name) Image_id
+
+
+Taging Image
+------------------
+docker build --help
+
+docker build -t goalsapp:latest .				(t is for tag. goalsapp is group and latest is specialized image in the group goalsapp)
+
+If you want to remove all images, including tagged images
+docker image prune -a
+
+
+
+
+
+
+
+
+
+
+
+
+
+

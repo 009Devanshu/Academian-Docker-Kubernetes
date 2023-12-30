@@ -1,0 +1,292 @@
+----------------------------------------------------------------
+SECTION 3: Managing Data and Working Volumes
+----------------------------------------------------------------
+
+Problem
+Images are read  only. 
+Containers allow read and write operations.	(When they run)
+If we stop the container, it will remain the data when we added when it was running. 
+It we remove the container, it will lose everything. 
+Because new container is isolated from the previous one. 
+
+Solution:
+Docker has a build-in feature called volumes.
+Volumes help in persisting data (even when container is removed) and solve the above problem.
+Volumes--> Volumes are folders on your host machine hard drive (Not in image or container) which are mounted ("made available",mapped) into containers. You make docker aware of these volumes and map 
+them to folders inside of a docker container.
+
+Adding Volume-->
+VOLUME ["/app/feedback"]		(We are specifying the path inside container that would be mapped to some folder outside of the container)
+
+It is like this-->
+FROM node:14
+
+WORKDIR /app 
+
+COPY package.json .     
+
+RUN npm install 
+
+COPY . . 
+
+EXPOSE 80 
+
+VOLUME [ "/app/feedback" ]
+
+CMD ["node","server.js"]
+
+Rebuild this image
+docker build -t feedback-node:volumes .
+
+Run the container-->
+docker run -p 3000:80 -d --rm --name feedback-app feedback-node:volumes
+
+After closing and removing the container. If we run another container, we will find out that the data is not persisted. 
+Reason--> We are using anonymous volume which is bound to a single container. If container is removed, anonymous volume will be removed. 
+
+So, we should use named valume instead of anonymous volume. Because in named volume, data will be persisted even after the container is removed. See how it happens-->
+We can not specify named volume inside our Dockerfile, remove the instruction 'VOLUME [ "/app/feedback" ]' from our Dockerfile.
+Rebuild your image.
+docker run -p 3000:80 -d --rm --name feedback-app -v feedback:/app/feedback feedback-node:volumes			(-v <Any_name>:<path inside container)
+If you remove this container and again run another container (we will have to use named volume using '-v feedback:<path in container'
+docker run -p 3000:80 -d --rm --name feedback-app -v feedback:/app/feedback feedback-node:volumes
+
+
+
+
+-----------------------------------------------------------------------------------
+There are two types of External Data Storages
+Volumes (Managed by Docker)
+	Anonymous Volume	(Can't find out where it is, can't be edited. Although can be managed using 'docker volume' commands)
+	Named Volume		(Can't find out where it is, can't be edited. Although can be managed using 'docker volume' commands)
+	>> In both the cases, docker sets up a folder/path on your host machine, exact location is unknown to you. Managed via 'docker volume' commands
+	>> docker volume --help
+	>> docker volume ls
+Bind Mounts (Managed by You)
+-----------------------------------------------------------------------------------
+
+
+-------------------------------------------------------------------
+Removing Anonymous Volumes
+-----------------------------------------------------------------
+
+We saw, that anonymous volumes are removed automatically, when a container is removed.
+
+This happens when you start / run a container with the --rm option.
+
+If you start a container without that option, the anonymous volume would NOT be removed, even if you remove the container (with docker rm ...).
+
+Still, if you then re-create and re-run the container (i.e. you run docker run ... again), a new anonymous volume will be created. So even though the anonymous volume wasn't removed automatically, it'll also not be helpful because a different anonymous volume is attached the next time the container starts (i.e. you removed the old container and run a new one).
+
+Now you just start piling up a bunch of unused anonymous volumes - you can clear them via docker volume rm VOL_NAME or docker volume prune.
+
+
+
+
+-------------------------------------------------------------------
+Getting Started With Bind Mounts
+-----------------------------------------------------------------
+Problem with volumes--
+If we want any change in our project ---> Create new image and run again a container. 
+Using Bind Mounts, we define a folder/path on our host machine. 
+It is great for persisent, edible (by you) data (e.g source code)
+Bind mount makes sure that the source code is not used from the instruction (COPY . .), but from the bind mount. 
+In this way, our container will have access to the latest code. 
+
+
+docker run -p 3000:80 -d --rm --name feedback-app -v feedback:/app/feedback -v "absolute-path":<Generally working directory of container> feedback-node:volumes
+docker run -p 3000:80 -d --rm --name feedback-app -v feedback:/app/feedback -v "/home/devanshu/Downloads/data-volumes-01-starting-setup/data-volumes-01-starting-setup":/app feedback-node:volumes
+After running this command, If you do fucking http://localhost:3000	, you will get error. 
+Also you see this running container using docker ps -a, you will not find this container running. Why the fuck is this?
+Verify, 
+	Run the same command without --rm and run 'docker ps -a', you will see container is exited. 
+docker logs feedback-app
+	You will see can not find module 'express', It means this dependency is missing. This was the fucking problem. 
+	
+What is this problem happening?
+Actually we are overriding the /app folder if we bind this mount 
+
+In our Dockerfile--> 
+FROM node 
+.
+.
+RUN npm install
+
+COPY . .
+.'
+..
+
+What the dependencies and source is copied in /app folder inside the container will be overwritten by the command --->
+docker run -p 3000:80 -d --rm --name feedback-app -v feedback:/app/feedback -v "/home/devanshu/Downloads/data-volumes-01-starting-setup/data-volumes-01-starting-setup:/app" feedback-node:volumes
+Due to this part in the above command---> "/home/devanshu/Downloads/data-volumes-01-starting-setup/data-volumes-01-starting-setup:/app"
+
+So, we will have to tell docker to not overwrite some specific part inside the container from outside the container. This can be achieved with the help of anonymous volume. 
+Add anonumous volume for example this one-->  -v /app/node-modules 
+docker run -p 3000:80 -d --rm --name feedback-app -v feedback:/app/feedback -v "/home/devanshu/Downloads/data-volumes-01-starting-setup/data-volumes-01-starting-setup:/app" -v /app/node_modules feedback-node:volumes
+
+(Note:Node_modules folder was created created when npm install was run when image was build)
+
+(Note: Writing -v /app/node_modules is similar to writing 'VOLUME ["/app/node_modules"] in Dockerfile)
+
+-------------------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------------------------
+A NodeJS- specific Adjustment: Using Nodeman in a container	(It is nodeJS specific bullshit, so don't mind)
+---------------------------------------------------------------------------------------------------------------------
+
+Node specific problem--> 
+If we do some change in server.js (javascript file), it is not reflected in running container. So, we will have to run the container again. (We don't need to restart the container but the web-server).
+But, we will need to restart the container.  
+
+Another problem with nodeJs is, if we are just developing the application locally, without using Docker at all, there is a useful extra package which we can use in nodeJs development which will watch 
+the file system, which will restart the node server whenever a file changed. It is a package which be used during developement to ensuer that changes are reflected instantly. So, we 
+add below dependency below dependencies--> 
+	
+	"devDependencies": {
+		"nodemon":2.0.4
+		
+	};
+	
+Also need to change in package.json. (You can see the code after downloading from udemy)
+
+Now, we can run server.js with this nodeman package instead of node itself. Under the hood, nodemon uses node.
+Now, if we do any change in server.js, it will be reflected in running container. No need to restart the web-server (Re-start the container). 
+
+
+
+---------------------------------------------------------------------------------------------------------------------
+A look at Read-Only volumes
+---------------------------------------------------------------------------------------------------------------------
+We can make sure that docker does not write into host file system 
+so, 
+"/home/devanshu/Downloads/data-volumes-01-starting-setup/data-volumes-01-starting-setup:/app:ro"		(ro for Read-Only)
+But, we also need to ensure writing in feedback folder and temp folder. We already have this for feedback
+	-v feedback:/app/feedback
+We will have to do this for temp folder
+	-v /app/temp
+
+docker run -p 3000:80 -d --rm --name feedback-app -v feedback:/app/feedback -v "/home/devanshu/Downloads/data-volumes-01-starting-setup/data-volumes-01-starting-setup:/app:ro" -v /app/temp -v /app/node_modules feedback-node:volumes
+
+
+
+---------------------------------------------------------------------------------------------------------------------
+Managing Docker Volumes
+---------------------------------------------------------------------------------------------------------------------
+
+docker volume --help 
+docker volume ls 	(list all the volumes)	(Bind Mount will not be listed because it is not managed by docker)
+docker volume create <volume-name>	(And you can use this volume while running a container)
+	docker ... volume-name:/app/feedback		(Since, it is the volume created by me, so docker will not need to create it by own)
+docker volume inspect <volume-name>
+docker volume rm <volume-name>		(But, be aware, if you remove the volume. You will lose the data)
+docker volume prune 			(Remove all the volumes that are un-used)
+
+---------------------------------------------------------------------------------------------------------------------
+Using COPY vs BIND MOUNTS
+---------------------------------------------------------------------------------------------------------------------
+
+What happens if we remove COPY . . from the Dockerfile. This layer provides snapshot of our source code that is required when container is running on a server. 
+On the server source code which is on our host system is not available on the server.  
+
+
+---------------------------------------------------------------------------------------------------------------------
+Don't copy everything : Using 'dockerignore' file
+---------------------------------------------------------------------------------------------------------------------
+It tells which folder and files should not be copied into container by COPY . .
+
+I want to add node_modules dockerignore file
+Although node_modules folder is not present in our file system locally. It is added by npm install. (I am just taking the example) 
+
+---------------------------------------------------------------------------------------------------------------------
+Working With Environment Variables and .env files
+---------------------------------------------------------------------------------------------------------------------
+
+Docker supports build-time ARGuments and runtime ENVironment variables.
+
+ARG --> Available inside of Dockerfile, not accessible in CMD or any application code. Set on image build (docker build) via --build-arg
+ENV --> Available inside of Dockerfile & in application code. Set via ENV in Dockerfile or via --env on docker run
+
+Node embraces the concept of environment variables and you access them in your node code on a globally available process object 
+
+In server.js
+	app.listen(process.env.PORT)
+	
+
+In Dockerfile 
+	
+	.
+	.
+	COPY . .
+	
+	ENV PORT 80	(Declaring default value of PORT)
+	
+	EXPOSE $PORT 
+	
+	
+
+Now, let's rebuild our image--->
+docker build -t feedback-node:env .
+
+
+docker run -p 3000:80 -d --rm --name feedback-app -v feedback:/app/feedback -v "/home/devanshu/Downloads/data-volumes-01-starting-setup/data-volumes-01-starting-setup:/app:ro" -v /app/temp -v /app/node_modules feedback-node:env	
+(We are using default port 80 here)
+We can use different port (Using --env PORT=8000)
+docker run -p 3000:8000 --env PORT=8000 -d --rm --name feedback-app -v feedback:/app/feedback -v "/home/devanshu/Downloads/data-volumes-01-starting-setup/data-volumes-01-starting-setup:/app:ro" -v /app/temp -v /app/node_modules feedback-node:env
+(Note: We could use -e instead of using --env)
+
+We can also use .env file for Environment varialbles
+In .env file---> 
+PORT=8000
+
+Now use  '--env-file ./.env' instead  of '--env PORT=8000'
+docker run -p 3000:8000 --env-file ./.env -d --rm --name feedback-app -v feedback:/app/feedback -v "/home/devanshu/Downloads/data-volumes-01-starting-setup/data-volumes-01-starting-setup:/app:ro" -v /app/temp -v /app/node_modules feedback-node:env
+(No need to rebuild image, because we did not change in Dockerfile)
+
+
+---------------------------------------------------------------------
+Using Build Arguments
+---------------------------------------------------------------------
+
+With Build Arguments, we can change the values of Build Arguments while building different images without changing in Dockerfile. 
+
+Dockerfile
+FROM node:14
+
+WORKDIR /app 
+
+COPY package.json .     
+
+RUN npm install 
+
+COPY . . 
+
+ARG DEFAULT_PORT=80
+
+ENV PORT $DEFAULT_PORT 
+
+EXPOSE $PORT
+
+CMD ["npm","start"]
+
+
+
+docker build -t feedback-node:dev --build-arg DEFAULT_PORT=8000 .		(Similarly, we can use different ports for different environments)
+
+
+
+
+
+
+
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+Again to See
+
+COPY package.json .     
+
+RUN npm install 
+
+COPY . . 
+
+Why are these layers positioned like this
+----------------------------------------------------------------------

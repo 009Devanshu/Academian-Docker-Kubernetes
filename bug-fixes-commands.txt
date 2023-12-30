@@ -1,0 +1,12 @@
+When i run Docker command, Error 
+	Permission denied while trying to connect to the docker daemon socket.	
+Fixes 
+	We have to add the user to group 
+	sudo adduser devanshu docker or sudo adduser $USER docker 	(We are adding the user to group docker)
+Now, reboot 
+	sudo reboot
+	
+	
+	
+	
+	 
