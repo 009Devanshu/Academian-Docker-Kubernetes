@@ -1,2 +1,76 @@
---------------------------------
+******************************************************************
+	Networking: (Cross-)Container Communication 
+******************************************************************
+
+Container to Web(www) communciation is very straightforward.
+In order to container communucate with your host
+	We need url host.docker.internal		(It is translated into ip address of your host machine as seen from inside the docker container)
+	For example for mongoDB--> mongodb://host.docker.internal:27017
+	If any web server running on your host machine, then use http instead of mongodb. (http://host.docker.internal:port/)
+	
+	
+
+
+Container to Container Communication
+-------------------------------------------------
+One container for mongodb and another container for our node application(Which we already have)
+docker run mongo		(It will pull the image from docker hub and create a container)
+You will be in attached mode. 
+Let's re-run it (Press ctrl + c) 
+docker run -d --name mongodb mongo
+
+In order to connect to this container of mongodb, we will need to know the ip address of this container-->
+docker container inspect mongodb
+	Under network settings, you will get ip-address
+	
+Now, modify your url in .js file --> mongodb://ip_address:27017/swfavorites
+
+It is a cumbersome process, we need to see ip address and need to hard code that ip address. We will need to build image again and again if ip address is changed.
+
+
+Introducing Docker Networks: Elegant Container to Container Communication
+-------------------------------------------------------------------------------
+We put all our containers in our docker network. Within a docker network, all containers can communicate with each other and IPs are automatically resolved.
+docker run --network my_network
+
+Let's do it, 
+First of all remove all the containers. 
+docker run -d --name mongodb --network favorites-net mongo
+	(Error: network favorites-net not found)
+So, we will have to create network first.
+
+docker network create <network-name>
+docker network create favorites-net
+docker network ls	(To see all the networks)
+
+In your application, modify url ---> type://<name-of-container>:port		(We just need to provide name of your container which is also the part of network)
+				     mongodb://mongodb:27017/...
+Re-build the image.
+docker build -t favorites-node .
+
+Run the application container
+docker run --name favorites --network favorites-net -d --rm -p 3000:3000 favorites-node
+				     
+
+
+How docker resolves IP addresses
+-------------------------------------------------------------------------------
+
+----------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
 
