@@ -1,0 +1,108 @@
+-------------------------------------------------------------------
+Section 5: Building Multicontainer Application with Docker
+-------------------------------------------------------------------
+We have mongodb database, backend nodejs application and React application.
+
+Let's containarize mongodb database, 
+docker run --name mongodb --rm -d -p 27017:27017 mongo			(MongoDb exposes default port 27017)
+We did not dockerize node js, in our nodeJs app.js, we already provided url with mongodb://localhost:27017/...		(And it will connect to mongodb database)
+
+Let's dockerize nodeJs app--->
+-----------------------------------------
+docker build -t goals-node .
+docker run --name goals-backend --rm goals-node			(Failed to connect to MongoDB)
+Reason: In app.js, url is mongodb://localhost:27017/...		
+	It means container is reaching out some service (mongodb service) in the same container)	(Container reaching a service inside itself hahahaha!!!!)
+So, use
+	mongodb://host.docker.internal:27017/...		(Connecting to MondoDB database on our host)
+Rebuild the image
+Re-run the container
+docker run --name goals-backend --rm goals-node	
+
+In order to make front-end application connect to backend application, we need to expose port for backend application, that's why we will need to re-run the container at the expose port 
+docker run --name goals-backend --rm -d port 80:80 goals-node
+
+Our Frontend application run on default port 3000
+docker run --name goals-frontend --rm -d -p 3000:3000 goals-react
+
+Check the application!!!
+
+-------------------------------------------
+Now, put them all in a network. 
+So, stop the containers.
+docker network create goals-net
+docker run --name mongodb --rm -d --network goals-net mongo		(Running this container without port, because all the containers are going to be on the same network)
+Rebuild the backend-node image, 	change to change in url		--> mongodb://mongodb:27017/...
+docker run --name goals-backend --rm -d --network goals-net goals-node	(No need to mentions -p port:port)
+
+In Front-end app, app.js
+	urls ip should be ---> goals-backend
+Rebuild the image of front-end-->
+docker build -t goals-react .
+docker run --name goals-frontend --rm -d -p 3000:3000 -it --network goals-net goals-react		(But This react application is different, it will run on the browser, It is not executed inside of
+													the container and browser does not have any idea about goals-backend	(ip of url in front-end
+													application)
+So, use localhost as ip address in all the urls in react application. 
+Rebuild the image--> 
+docker build -t goals-react .
+Re-run the container--> 
+docker run --name gaols-frontend --rm -p 3000:3000 -it goals-react
+
+docker stop goals-backend		(We will expose backend container at port 80)
+docker run --name goals-backend --rm -d -p 80:80 --network goals-net goals-node
+
+Now, the application will work fine.
+
+
+
+--------------------------------------------------------------
+Adding Data Persistence to MongoDB with Volumes
+--------------------------------------------------------------
+In case of Mongodb, it is not our image. So, we don't know which path will be used internally for the volume.
+If we see in mongo docker image documentation, it uses /data/db inside the container. 
+
+
+docker run --name mongodb -v data:/data/db --rm -d --network goals-net mongo		(Now, the data will be persisted)
+
+
+-------------------------------------
+Let's use Authentication-->
+-------------------------------------
+mongodb image supports two environment variables
+	MONGO_INITDB_ROOT_USERNAME
+	MONGO_INITDB_ROOT_PASSWORD
+	
+Re-run mongodb but with environment variables---> 
+docker run --name mongodb -v data:/data/db --rm -d --network goals-net  -e MONGO_INITDB_ROOT_USERNAME=max -e MONGO_INITDB_ROOT_PASSWORD=secret mongo
+Now, if we reload our application, fetching data fails. because backend-application is connecting to mongodb without username and password. 
+Modify url in backend application app.js
+url--> mongodb://max:secret@mongodb:27017/course-goals?authSource=admin
+Rebuild and re-run the application. 
+
+
+
+---------------------------------------------------------------
+Volumes, Bind Mounts, & Polishing for the NodeJS Container
+---------------------------------------------------------------
+
+Later (Only 2 videos are remaining)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+

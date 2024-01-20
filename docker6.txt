@@ -1,0 +1,56 @@
+Docker Compose
+-------------------------------
+
+What is Docker Compose?
+Ans:
+Instead of writing multiple docker build and docker run commands, ---> One configuration file + Orchestration Commands (build,start,stop..etc)
+
+Docker compose does not replace Dockerfiles for custom images. 
+Docker compose does not replace Images or containers. 
+Docker compose is not suited for managing multiple containers on different hosts (machines)
+
+Writing Docker Compose files--> 
+Services(Containers)
+	Published Ports 
+	Environment Variables
+	Volumes 
+	Networks
+	
+
+------------------------------------------------------
+Creating a Compose File
+------------------------------------------------------
+
+Create docker-compose.yaml file 
+
+version: "3.8"
+services: 
+  mongodb:
+    image: "mongo"
+    volumes:
+      - data:/data/db
+    environement:
+      # MONGO_INITDB_ROOT_USERNAME: max
+      # MONGO_INITDB_ROOT_PASSWORD: secret  
+    env_file:
+      - ./env/mongo.env		(Containing environment variables)
+  # backend:
+  # frontend: 
+
+volumes:
+  data:
+  
+ 
+ 
+ Now, navigate the folder in which our docker-compose file is present:-
+ docker-compose up	
+ You will be in attached mode. 
+ ctrl+c	(Now, the container will stop)
+ docker-compose up -d
+ 
+ docker-compose down		(It will delete everything and shut them down)	(It does not delete the volume though)
+ 
+ 
+ 
+Now, for backend--> 
+
